@@ -7,7 +7,7 @@ Static personal portfolio. No build step.
 - `projects.js` — single source of truth for project data, shared by both pages
 - `resume.pdf` — resume
 
-## Run locally
+## Run locally.
 
 ```sh
 python3 -m http.server 8000
