@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nalam Karthik</title>
+<meta name="description" content="Nalam Karthik builds backends, ML systems and LLM tooling. Every project is a unit in a server rack: slide one out to read its spec, or open the one-page recruiter view.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800;900&family=Chivo+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --floor: #f1dccd; --graphite: #2b1838; --graphite-2: #3a2349; --metal: #dccbd3;
+  --sticker: #fffaf6; --ink: #2a1631; --ink-soft: #6d5a72; --rule: #ecd6c8;
+  --backend: #8b7cf6; --genai: #2bb3a3; --ml: #f2b544; --about: #f26b5b; --led: #4ade80;
+  --sans: "Chivo", system-ui, sans-serif;
+  --mono: "Chivo Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--floor); color: var(--ink); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+canvas#world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+a { color: inherit; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--about); outline-offset: 2px; }
+
+/* asset tag sticker */
+.tag { position: fixed; top: 16px; left: 16px; z-index: 5; background: var(--sticker); border-radius: 6px; padding: 12px 16px 10px; box-shadow: 0 2px 0 rgba(0,0,0,.08), 0 10px 30px rgba(43,24,56,.15); display: grid; grid-template-columns: auto auto; gap: 2px 18px; align-items: end; }
+.tag small { grid-column: 1 / -1; font: 400 11px var(--mono); color: var(--ink-soft); }
+.tag .name { font: 900 24px/1.05 var(--sans); letter-spacing: -.02em; }
+.tag .role { grid-column: 1 / -1; font-size: 14px; color: var(--ink-soft); }
+.barcode { width: 92px; height: 26px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 12px); justify-self: end; }
+
+.actions { position: fixed; top: 16px; right: 16px; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.btn { border: 0; background: var(--sticker); border-radius: 6px; padding: 9px 14px; font: 600 14px var(--sans); text-decoration: none; box-shadow: 0 2px 0 rgba(0,0,0,.08), 0 6px 18px rgba(43,24,56,.12); display: inline-block; }
+.btn:hover { background: #f8ebe2; }
+.btn.primary { background: var(--graphite); color: #fff; }
+.btn.primary:hover { background: #1c0f25; }
+
+/* status bar, like the console strip under a rack */
+.status { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--graphite); color: #f3e6ee; display: flex; align-items: stretch; font: 400 13px var(--mono); min-height: 46px; padding-bottom: env(safe-area-inset-bottom); }
+.racks { display: flex; }
+.racks button { white-space: nowrap; background: none; border: 0; border-right: 1px solid #4a3358; padding: 0 14px; color: #c4afcf; display: flex; align-items: center; gap: 8px; font: 600 13px var(--sans); }
+.racks button i { width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
+.racks button[aria-pressed="true"] { color: #fff; background: #3a2349; }
+.now { flex: 1; display: flex; align-items: center; padding: 0 16px; gap: 10px; min-width: 0; }
+.now span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now .u { color: #9b86a6; }
+.keys { display: flex; align-items: center; gap: 14px; padding: 0 16px; color: #a28fa8; border-left: 1px solid #4a3358; white-space: nowrap; }
+.keys kbd { font: 600 11px var(--mono); color: #f3e6ee; background: #4a3358; padding: 1px 6px; border-radius: 3px; }
+.seen { display: flex; align-items: center; gap: 8px; padding: 0 16px; border-left: 1px solid #4a3358; white-space: nowrap; }
+.seen .leds { display: flex; gap: 2px; }
+.seen .leds i { width: 5px; height: 10px; background: #4a3358; border-radius: 1px; }
+.seen .leds i.on { background: var(--led); }
+
+/* spec sheet */
+.sheet { position: fixed; top: 0; right: 0; bottom: 46px; width: min(520px, 100vw); z-index: 10; background: var(--sticker); transform: translateX(105%); transition: transform .35s cubic-bezier(.2,.8,.2,1); overflow-y: auto; overscroll-behavior: contain; box-shadow: -20px 0 50px rgba(43,24,56,.18); }
+.sheet.open { transform: none; }
+.sheet .bar { position: sticky; top: 0; background: var(--sticker); display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--rule); z-index: 1; }
+.loc { display: flex; align-items: center; gap: 8px; font: 400 13px var(--mono); color: var(--ink-soft); }
+.loc i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.close { border: 0; background: #f6e6dc; border-radius: 6px; padding: 7px 12px; font: 600 13px var(--sans); }
+.sheet .content { padding: 24px 24px 40px; }
+.sheet h2 { font: 900 34px/1.05 var(--sans); letter-spacing: -.025em; margin: 0 0 6px; }
+.sheet .kind { font: 600 17px var(--sans); color: var(--ink-soft); margin: 0 0 16px; }
+.sheet .lede { font-size: 17px; margin: 0 0 22px; max-width: 60ch; }
+.sheet h3 { font: 800 15px var(--sans); margin: 28px 0 10px; }
+.specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.specs div { background: #fdf3ec; padding: 10px 12px; font-size: 13px; color: var(--ink-soft); }
+.specs b { display: block; font: 800 22px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.path { list-style: none; padding: 0; margin: 0; counter-reset: hop; }
+.path li { position: relative; padding: 0 0 10px 28px; font-size: 15px; }
+.path li::before { counter-increment: hop; content: counter(hop); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 50%; background: var(--graphite); color: #fff; font: 600 11px/19px var(--mono); text-align: center; }
+.path li:not(:last-child)::after { content: ""; position: absolute; left: 9px; top: 21px; bottom: 1px; border-left: 1.5px dashed #c4afcf; }
+.sheet ul.built { padding-left: 20px; margin: 0; }
+.sheet ul.built li { margin-bottom: 8px; }
+.stack { display: flex; flex-wrap: wrap; gap: 6px; }
+.stack span { background: #f6e6dc; border-radius: 4px; padding: 2px 9px; font-size: 13.5px; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; align-items: center; }
+.links .btn { box-shadow: none; border: 1.5px solid var(--graphite); }
+.muted { color: var(--ink-soft); font-size: 14px; }
+
+/* unit index */
+.index { position: fixed; inset: 0; z-index: 12; background: rgba(43,24,56,.45); display: none; align-items: flex-start; justify-content: center; padding: 70px 16px 60px; }
+.index.open { display: flex; }
+.index .box { background: var(--sticker); border-radius: 8px; width: min(820px, 100%); max-height: 100%; overflow-y: auto; box-shadow: 0 30px 80px rgba(0,0,0,.3); }
+.index .box .bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--sticker); }
+.index h2 { font: 900 22px var(--sans); margin: 0; }
+.index .cols { display: grid; grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 620px) { .index .cols { grid-template-columns: 1fr; } }
+.index section { padding: 14px 20px 18px; border-bottom: 1px solid var(--rule); }
+.index h4 { margin: 0 0 6px; }
+.index ol { list-style: none; padding: 0; margin: 0; }
+.index li button { width: 100%; text-align: left; border: 0; background: none; padding: 6px 0; display: flex; gap: 10px; font-size: 15px; align-items: baseline; }
+.index li .u { font: 400 12px var(--mono); color: var(--ink-soft); width: 28px; flex: none; }
+.index li button:hover span:nth-child(2) { text-decoration: underline; }
+.index li .ok { margin-left: auto; color: var(--genai); font-size: 13px; font-weight: 600; }
+
+/* intro */
+.intro { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(243,220,203,.55); backdrop-filter: blur(4px); }
+.intro.gone { display: none; }
+.intro .card { background: var(--sticker); border-radius: 10px; max-width: 560px; padding: 32px 32px 28px; box-shadow: 0 30px 80px rgba(43,24,56,.25); }
+.intro h1 { font: 900 clamp(38px, 7vw, 56px)/.98 var(--sans); letter-spacing: -.03em; margin: 0 0 16px; }
+.intro p { margin: 0 0 12px; font-size: 17px; }
+.intro .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.intro .btn { font-size: 16px; padding: 11px 18px; box-shadow: none; border: 1.5px solid var(--graphite); }
+.intro .loading { font: 400 13px var(--mono); color: var(--ink-soft); margin-top: 14px; min-height: 1em; }
+
+@media (max-width: 760px) {
+  .tag { top: 10px; left: 10px; padding: 9px 12px 8px; }
+  .tag .name { font-size: 19px; }
+  .tag .role, .barcode { display: none; }
+  .actions { top: 10px; right: 10px; }
+  .actions .btn { padding: 7px 10px; font-size: 13px; }
+  .actions .hide-sm { display: none; }
+  .keys, .now { display: none; }
+  .seen { padding: 0 12px; }
+  .seen .leds { display: none; }
+  .racks { flex: 1; overflow-x: auto; }
+  .racks button { padding: 0 12px; flex: none; }
+  .sheet { top: auto; height: 78%; width: 100%; transform: translateY(110%); border-radius: 12px 12px 0 0; }
+  .sheet h2 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }
+</script>
+</head>
+<body>
+<canvas id="world" aria-label="A 3D server rack where every unit is one of Nalam Karthik's projects. Use All units for a list."></canvas>
+
+<div class="tag">
+  <small>Property of</small>
+  <span class="name">Nalam Karthik</span><span class="barcode" aria-hidden="true"></span>
+  <span class="role">Backend, ML and LLM systems. VIT Vellore, 2027.</span>
+</div>
+
+<div class="actions">
+  <button class="btn" id="indexBtn">All units</button>
+  <a class="btn" href="recruiter.html">Recruiter view</a>
+  <a class="btn hide-sm" href="resume.pdf" target="_blank" rel="noopener">Resume</a>
+</div>
+
+<div class="status">
+  <div class="racks" id="rackTabs"></div>
+  <div class="now" id="nowText"><span class="u">no unit selected</span></div>
+  <div class="keys"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>←</kbd><kbd>→</kbd> rack</span><span><kbd>E</kbd> slide out</span><span><kbd>Esc</kbd> back</span></div>
+  <div class="seen" title="Units you have opened"><span id="seenText">0 of 0</span><span class="leds" id="seenLeds"></span></div>
+</div>
+
+<aside class="sheet" id="sheet" aria-hidden="true" aria-labelledby="sTitle">
+  <div class="bar"><span class="loc" id="sLoc"></span><button class="close" id="sClose">Slide back in</button></div>
+  <div class="content" id="sContent"></div>
+</aside>
+
+<div class="index" id="index" role="dialog" aria-modal="true" aria-labelledby="iTitle">
+  <div class="box">
+    <div class="bar"><h2 id="iTitle">All units</h2><button class="close" id="iClose">Close</button></div>
+    <div class="cols" id="iCols"></div>
+  </div>
+</div>
+
+<div class="intro" id="intro">
+  <div class="card">
+    <h1>Nalam Karthik</h1>
+    <p>I build backends, ML systems and LLM tooling. This is my rack: every unit is a system I've built, sorted into backend, GenAI and ML. The fourth rack holds my internship and university.</p>
+    <p id="introHow">Pick a unit to slide it out and read its spec. Use the arrow keys and E, or just click one.</p>
+    <div class="row">
+      <button class="btn primary" id="startBtn" disabled>Open the rack</button>
+      <a class="btn" href="recruiter.html">One-page recruiter view</a>
+    </div>
+    <div class="loading" id="loading">Racking units…</div>
+  </div>
+</div>
+
+<noscript><p style="position:fixed;inset:0;background:#fff;padding:24px;z-index:99">This page needs JavaScript. <a href="recruiter.html">Open the recruiter view</a> instead.</p></noscript>
+
+<script src="projects.js"></script>
+<script type="module">
+import * as THREE from "three";
+
+const probe = document.createElement("canvas");
+if (!(probe.getContext("webgl2") || probe.getContext("webgl"))) location.replace("recruiter.html");
+
+const canvas = document.getElementById("world");
+const TOUCH = matchMedia("(pointer: coarse)").matches;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const small = () => innerWidth < 760;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const shortName = p => p.title.split(" — ")[0];
+const uLabel = u => "U" + String(u.ui + 1).padStart(2, "0");
+const rackLetter = i => String.fromCharCode(65 + i);
+
+const byId = Object.fromEntries([...PROJECTS, ...LANDMARKS].map(p => [p.id, p]));
+const U = 0.8, RACK_W = 7.2, RACK_GAP = 0.9, RACK_H = 9.4, FRONT = 3.3;
+const rackX = i => (i - (RACKS.length - 1) / 2) * (RACK_W + RACK_GAP);
+
+await Promise.all([document.fonts.load("800 48px Chivo"), document.fonts.load("900 48px Chivo"), document.fonts.load("400 20px 'Chivo Mono'")]).catch(() => {});
+
+/* ---------- renderer ---------- */
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.shadowMap.enabled = !TOUCH;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#f1dccd");
+scene.fog = new THREE.Fog("#f1dccd", 38, 90);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.3, 200);
+
+scene.add(new THREE.HemisphereLight("#ffffff", "#b98fa0", 1.5));
+const key = new THREE.DirectionalLight("#ffffff", 2.0);
+key.position.set(12, 22, 18);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -26, right: 26, top: 20, bottom: -8, near: 1, far: 70 });
+key.shadow.bias = -0.0004;
+scene.add(key);
+
+function tex(w, h, draw) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+// Sets the largest font that fits maxW and returns the (possibly truncated) text.
+function fit(g, text, maxW, size, weight, family, min = 18) {
+  let s = size;
+  do { g.font = `${weight} ${s}px ${family}`; s -= 2; } while (g.measureText(text).width > maxW && s >= min);
+  if (g.measureText(text).width > maxW) { while (text.length > 4 && g.measureText(text + "…").width > maxW) text = text.slice(0, -1); text += "…"; }
+  return text;
+}
+function wrap(g, text, x, y, maxW, lh, maxLines = 4) {
+  let line = "", n = 1;
+  for (const w of text.split(" ")) {
+    const t = line ? line + " " + w : w;
+    if (g.measureText(t).width > maxW && line) {
+      if (n === maxLines) { g.fillText(line + "…", x, y); return; }
+      g.fillText(line, x, y); y += lh; line = w; n++;
+    } else line = t;
+  }
+  g.fillText(line, x, y);
+}
+
+/* ---------- raised floor ---------- */
+const tile = tex(256, 256, (g, w) => {
+  g.fillStyle = "#f3dccb"; g.fillRect(0, 0, w, w);
+  g.fillStyle = "rgba(150,100,90,.22)";
+  for (let y = 40; y < w - 30; y += 16) for (let x = 40; x < w - 30; x += 16) { g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+  g.strokeStyle = "#dcbfae"; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, w - 4);
+});
+tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(60, 60);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({ map: tile, roughness: .9 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+/* ---------- racks ---------- */
+const frameMat = new THREE.MeshStandardMaterial({ color: "#2b1838", roughness: .55, metalness: .35 });
+const innerMat = new THREE.MeshStandardMaterial({ color: "#1c0f25", roughness: .9 });
+const metalMat = new THREE.MeshStandardMaterial({ color: "#dccbd3", roughness: .35, metalness: .6 });
+const blankTex = tex(512, 512, (g, w, h) => {
+  g.fillStyle = "#33203f"; g.fillRect(0, 0, w, h);
+  g.fillStyle = "#241330";
+  for (let y = 12; y < h; y += 14) for (let x = 14 + (y / 14 % 2) * 7; x < w; x += 14) g.fillRect(x, y, 7, 5);
+});
+blankTex.wrapS = blankTex.wrapT = THREE.RepeatWrapping;
+
+function box(w, h, d, mat, x, y, z, parent = scene, shadow = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true;
+  parent.add(m); return m;
+}
+
+const units = [];
+const pickables = [];
+
+function makeUnit(p, rack, ri, ui, x0, y, h) {
+  const W = RACK_W - 1.05, D = 6.6;
+  const FW = 1024, FH = Math.round(FW * h / W);
+  const name = shortName(p), kind = p.title.split(" — ")[1] || "";
+  const uNum = String(ui + 1).padStart(2, "0");
+  const face = tex(FW, FH, (g, w, hh) => {
+    const grd = g.createLinearGradient(0, 0, 0, hh); grd.addColorStop(0, "#46305a"); grd.addColorStop(1, "#362347");
+    g.fillStyle = grd; g.fillRect(0, 0, w, hh);
+    g.fillStyle = rack.color; g.fillRect(0, 0, 16, hh);
+    g.fillStyle = "#241330"; // vents
+    for (let yy = 16; yy < hh - 14; yy += 13) for (let xx = 640; xx < 830; xx += 13) g.fillRect(xx, yy, 7, 7);
+    g.textBaseline = "middle"; g.fillStyle = "#9b86a6"; g.font = "400 22px 'Chivo Mono'";
+    g.fillText("U" + uNum, 40, hh > 160 ? 40 : hh / 2);
+    g.fillStyle = "#ffffff";
+    if (hh > 160) {
+      g.font = "800 54px Chivo";
+      if (g.measureText(name).width > 510) { g.font = "800 42px Chivo"; g.textBaseline = "alphabetic"; wrap(g, name, 112, hh * .36, 510, 46, 2); }
+      else { g.textBaseline = "alphabetic"; g.fillText(name, 112, hh * .46); }
+      g.fillStyle = "#c4afcf"; g.fillText(fit(g, kind || p.date, 510, 30, 400, "Chivo"), 112, hh - 40);
+    } else {
+      g.fillText(fit(g, name, 500, 40, 800, "Chivo"), 112, hh / 2 + 2);
+    }
+  });
+  const lid = tex(1024, Math.round(1024 * D / W), (g, w, hh) => {
+    g.fillStyle = "#e2cfd6"; g.fillRect(0, 0, w, hh);
+    g.strokeStyle = "rgba(255,255,255,.35)"; for (let i = 0; i < hh; i += 6) { g.beginPath(); g.moveTo(0, i); g.lineTo(w, i + 3); g.stroke(); }
+    // spec label near the front edge, where it shows once the unit slides out
+    const x = 70, yy = hh - 560, lw = w - 140;
+    g.fillStyle = "#ffffff"; g.fillRect(x, yy, lw, 500);
+    g.fillStyle = rack.color; g.fillRect(x, yy, lw, 20);
+    g.fillStyle = "#2a1631"; g.textBaseline = "alphabetic";
+    g.fillText(fit(g, name, lw - 80, 64, 900, "Chivo"), x + 40, yy + 100);
+    g.fillStyle = "#6d5a72"; g.fillText(fit(g, kind || p.date, lw - 80, 34, 400, "Chivo"), x + 40, yy + 150);
+    const m = (p.metrics || []).slice(0, 3);
+    if (m.length) {
+      const cw = (lw - 80) / 3;
+      m.forEach(([v, k], i) => {
+        const cx = x + 40 + i * cw;
+        g.fillStyle = "#2a1631"; g.fillText(fit(g, v, cw - 20, 64, 900, "Chivo"), cx, yy + 280);
+        g.fillStyle = "#6d5a72"; g.font = "400 26px Chivo"; wrap(g, k, cx, yy + 322, cw - 24, 32, 2);
+      });
+    } else { g.fillStyle = "#2a1631"; g.font = "400 34px Chivo"; wrap(g, p.tagline, x + 40, yy + 230, lw - 80, 46, 4); }
+    g.fillStyle = "#a28fa8"; g.font = "400 24px 'Chivo Mono'";
+    g.fillText(`rack ${rackLetter(ri)} / U${uNum} / ${p.id}`, x + 40, yy + 465);
+  });
+  const side = new THREE.MeshStandardMaterial({ color: "#4a3358", roughness: .5, metalness: .4 });
+  const faceMat = new THREE.MeshStandardMaterial({ map: face, roughness: .6, emissive: new THREE.Color(rack.color), emissiveIntensity: 0 });
+  const lidMat = new THREE.MeshStandardMaterial({ map: lid, roughness: .45, metalness: .25 });
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, h, D), [side, side, lidMat, side, faceMat, side]);
+  body.castShadow = true; body.receiveShadow = true;
+  body.position.z = FRONT - D / 2;
+  body.userData.id = p.id; pickables.push(body);
+  g.add(body);
+  [-1, 1].forEach(s => { const hd = box(.14, h * .62, .22, metalMat, s * (W / 2 - .2), 0, FRONT + .1, g); hd.userData.id = p.id; pickables.push(hd); });
+  const leds = ["#4ade80", rack.color, "#f3e6ee"].map((c, i) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(.11, .11, .04), new THREE.MeshBasicMaterial({ color: c }));
+    m.position.set(W / 2 - 1.0 + i * .22, h > 1 ? h / 2 - .22 : 0, FRONT + .01);
+    g.add(m); return { m, base: new THREE.Color(c), on: true, next: Math.random() };
+  });
+  g.position.set(x0, y, 0);
+  scene.add(g);
+  return { id: p.id, p, rack, ri, ui, g, faceMat, leds, pull: 0, x: x0, y, h };
+}
+
+RACKS.forEach((rack, ri) => {
+  const x0 = rackX(ri), g = new THREE.Group();
+  g.position.x = x0; scene.add(g);
+  const D = 7;
+  box(RACK_W, .35, D, frameMat, 0, .35, 0, g);                                   // plinth
+  box(RACK_W, .3, D, frameMat, 0, RACK_H - .15, 0, g);                           // roof
+  box(.12, RACK_H - .5, D, frameMat, -RACK_W / 2 + .06, RACK_H / 2, 0, g);       // side panels
+  box(.12, RACK_H - .5, D, frameMat, RACK_W / 2 - .06, RACK_H / 2, 0, g);
+  box(RACK_W - .2, RACK_H - .5, .1, innerMat, 0, RACK_H / 2, -D / 2 + .1, g);    // back
+  [-1, 1].forEach(s => box(.28, RACK_H - .8, .18, metalMat, s * (RACK_W / 2 - .4), RACK_H / 2, FRONT + .05, g)); // front rails
+
+  const sign = tex(1024, 140, (c, w, h) => {
+    c.fillStyle = "#22122d"; c.fillRect(0, 0, w, h);
+    c.fillStyle = rack.color; c.fillRect(0, 0, 22, h);
+    c.fillStyle = "#ffffff"; c.textBaseline = "middle";
+    c.fillText(fit(c, rack.name, 760, 56, 800, "Chivo"), 54, h / 2 + 2);
+    c.font = "400 30px 'Chivo Mono'"; c.fillStyle = "#a28fa8"; c.textAlign = "right";
+    c.fillText(`rack ${rackLetter(ri)}`, w - 30, h / 2 + 2);
+  });
+  box(RACK_W - .1, 1.1, .12, frameMat, 0, RACK_H + .62, FRONT + .02, g, false);
+  const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(RACK_W - .2, (RACK_W - .2) * 140 / 1024), new THREE.MeshBasicMaterial({ map: sign }));
+  signMesh.position.set(0, RACK_H + .62, FRONT + .1); g.add(signMesh);
+
+  // units, from the top down
+  let top = RACK_H - .55;
+  rack.ids.forEach((id, ui) => {
+    const p = byId[id], h = (TWO_U.has(id) ? 2 : 1) * U - .04;
+    units.push(makeUnit(p, rack, ri, ui, x0, top - h / 2, h));
+    top -= h + .04;
+  });
+  // vented blank panel fills the space below
+  const blankH = top - .6;
+  if (blankH > .2) {
+    const t = blankTex.clone(); t.needsUpdate = true; t.repeat.set(RACK_W / 2, blankH / 2);
+    box(RACK_W - 1, blankH, .06, new THREE.MeshStandardMaterial({ map: t, roughness: .8 }), 0, .55 + blankH / 2, FRONT, g, false);
+  }
+});
+
+/* ---------- overhead cable tray ---------- */
+const trayY = RACK_H + 2.6;
+box((RACK_W + RACK_GAP) * RACKS.length + 2, .25, 1.6, frameMat, 0, trayY, -.8, scene, false);
+RACKS.forEach((rack, ri) => {
+  [-1.6, 0, 1.6].forEach((dx, i) => {
+    const x = rackX(ri) + dx;
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(x + i * .3 - .3, trayY, -.8 + (i - 1) * .4),
+      new THREE.Vector3(x, trayY - 1.0, -1.8 + i * .2),
+      new THREE.Vector3(x, RACK_H + .05, -2.4 + i * .3),
+    ]);
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 20, .07, 8), new THREE.MeshStandardMaterial({ color: i === 1 ? rack.color : "#4a3358", roughness: .6 }));
+    tube.castShadow = true; scene.add(tube);
+  });
+});
+
+/* ---------- state ---------- */
+const S = { sel: null, hover: null, open: null, started: false, yaw: 0, pitch: .16, zoom: 1 };
+let seen = new Set();
+try { seen = new Set(JSON.parse(localStorage.getItem("seen-units") || "[]")); } catch (e) {}
+const unitById = Object.fromEntries(units.map(u => [u.id, u]));
+
+function renderSeen() {
+  $("#seenText").textContent = `Opened ${units.filter(u => seen.has(u.id)).length} of ${units.length}`;
+  $("#seenLeds").innerHTML = units.map(u => `<i class="${seen.has(u.id) ? "on" : ""}"></i>`).join("");
+}
+renderSeen();
+$("#rackTabs").innerHTML = RACKS.map((r, i) => `<button data-rack="${i}" aria-pressed="false"><i style="--c:${r.color}"></i>${esc(r.short)}</button>`).join("");
+$("#rackTabs").onclick = e => {
+  const b = e.target.closest("[data-rack]"); if (!b) return;
+  if (S.open) closeSheet();
+  select(units.find(u => u.ri === +b.dataset.rack));
+  b.blur();
+};
+
+function select(u) {
+  if (!u) return;
+  S.sel = u;
+  document.querySelectorAll("#rackTabs button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.rack === u.ri)));
+  $("#nowText").innerHTML = `<span class="u">rack ${rackLetter(u.ri)} / ${uLabel(u)}</span><span>${esc(shortName(u.p))}</span>`;
+}
+
+/* ---------- spec sheet ---------- */
+function openSheet(u) {
+  if (!u) return;
+  select(u);
+  const p = u.p, kind = p.title.split(" — ")[1];
+  $("#sLoc").innerHTML = `<i style="--c:${u.rack.color}"></i>${esc(u.rack.name)}, ${uLabel(u)}`;
+  const links = [...(p.links || [])];
+  if (p.repo) links.unshift(["View the code on GitHub", p.repo]);
+  if (p.demo) links.push(["Try the interactive demo", "recruiter.html#" + p.demo]);
+  const noCode = PROJECTS.includes(p) && !p.repo;
+  $("#sContent").innerHTML = `
+    <h2 id="sTitle">${esc(shortName(p))}</h2>
+    <p class="kind">${kind ? esc(kind) + ", " : ""}${esc(p.date)}</p>
+    <p class="lede">${esc(p.tagline)}</p>
+    ${p.metrics ? `<div class="specs">${p.metrics.map(([v, k]) => `<div><b>${esc(v)}</b>${esc(k)}</div>`).join("")}</div>` : ""}
+    ${p.flow ? `<h3>Request path</h3><ol class="path">${p.flow.map(f => `<li>${esc(f)}</li>`).join("")}</ol>` : ""}
+    ${p.bullets.length ? `<h3>What I built</h3><ul class="built">${p.bullets.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${p.stack.length ? `<h3>Built with</h3><div class="stack">${p.stack.map(s => `<span>${esc(s)}</span>`).join("")}</div>` : ""}
+    <div class="links">${links.map(([t, href], i) => `<a class="btn${i === 0 ? " primary" : ""}" href="${href}"${/^https?:|\.pdf$/.test(href) ? ' target="_blank" rel="noopener"' : ""}>${esc(t)}</a>`).join("")}
+      ${noCode ? `<span class="muted">The code goes public soon.</span>` : ""}</div>`;
+  $("#sheet").classList.add("open");
+  $("#sheet").setAttribute("aria-hidden", "false");
+  $("#sheet").scrollTop = 0;
+  S.open = u;
+  seen.add(u.id);
+  try { localStorage.setItem("seen-units", JSON.stringify([...seen])); } catch (e) {}
+  renderSeen();
+  history.replaceState(null, "", "#" + u.id);
+}
+function closeSheet() {
+  $("#sheet").classList.remove("open");
+  $("#sheet").setAttribute("aria-hidden", "true");
+  S.open = null;
+  history.replaceState(null, "", location.pathname + location.search);
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+}
+$("#sClose").onclick = closeSheet;
+
+/* ---------- unit index ---------- */
+function openIndex() {
+  $("#iCols").innerHTML = RACKS.map((r, ri) => `
+    <section><h4 class="loc"><i style="--c:${r.color}"></i>${esc(r.name)}</h4><ol>
+    ${units.filter(u => u.ri === ri).map(u => `<li><button data-go="${u.id}"><span class="u">${uLabel(u)}</span><span>${esc(shortName(u.p))}</span>${seen.has(u.id) ? '<span class="ok">opened</span>' : ""}</button></li>`).join("")}
+    </ol></section>`).join("");
+  $("#index").classList.add("open");
+  $("#iCols button").focus();
+}
+const closeIndex = () => $("#index").classList.remove("open");
+$("#indexBtn").onclick = openIndex;
+$("#iClose").onclick = closeIndex;
+$("#index").onclick = e => {
+  if (e.target.id === "index") return closeIndex();
+  const b = e.target.closest("[data-go]"); if (!b) return;
+  closeIndex(); openSheet(unitById[b.dataset.go]);
+};
+
+/* ---------- keyboard ----------
+   Listens on window whatever has focus (canvas, body, a button). Only text
+   fields and the open index dialog are left alone, and Enter/Space are left
+   to focused buttons and links so those keep working. */
+function move(dy, dx) {
+  const cur = S.sel || units[0];
+  let next;
+  if (dx) {
+    const ri = (cur.ri + dx + RACKS.length) % RACKS.length;
+    next = units.filter(u => u.ri === ri).reduce((a, b) => Math.abs(b.y - cur.y) < Math.abs(a.y - cur.y) ? b : a);
+  } else {
+    const inRack = units.filter(u => u.ri === cur.ri);
+    next = S.sel ? inRack[(cur.ui + dy + inRack.length) % inRack.length] : cur;
+  }
+  if (S.open) openSheet(next); else select(next);
+}
+addEventListener("keydown", e => {
+  if (!S.started || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target, tag = t.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if ($("#index").classList.contains("open")) { if (e.key === "Escape") closeIndex(); return; }
+  const inSheet = t.closest?.(".sheet");
+  const onControl = t.closest?.("button, a");
+  switch (e.code) {
+    case "ArrowUp": case "KeyW": if (inSheet && e.code === "ArrowUp") return; e.preventDefault(); move(-1, 0); break;
+    case "ArrowDown": case "KeyS": if (inSheet && e.code === "ArrowDown") return; e.preventDefault(); move(1, 0); break;
+    case "ArrowLeft": case "KeyA": e.preventDefault(); move(0, -1); break;
+    case "ArrowRight": case "KeyD": e.preventDefault(); move(0, 1); break;
+    case "KeyE": if (S.open) closeSheet(); else openSheet(S.sel || units[0]); break;
+    case "Enter": case "Space": if (onControl) return; e.preventDefault(); if (!S.open) openSheet(S.sel || units[0]); break;
+    case "Escape": if (S.open) closeSheet(); break;
+    case "KeyM": openIndex(); break;
+  }
+});
+
+/* ---------- pointer: click a unit to open it, drag to look around ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let drag = null;
+function pick(e) {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(pickables, false)[0];
+  return hit ? unitById[hit.object.userData.id] : null;
+}
+canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, yaw: S.yaw, pitch: S.pitch, moved: false }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", e => {
+  if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.hypot(dx, dy) > 6) drag.moved = true;
+    if (drag.moved && !S.open) {
+      S.yaw = THREE.MathUtils.clamp(drag.yaw - dx * .004, -.7, .7);
+      S.pitch = THREE.MathUtils.clamp(drag.pitch + dy * .003, -.05, .6);
+    }
+  } else if (!TOUCH) {
+    S.hover = pick(e);
+    canvas.style.cursor = S.hover ? "pointer" : "grab";
+  }
+});
+canvas.addEventListener("pointerup", e => {
+  const d = drag; drag = null;
+  if (!S.started || !d || d.moved) return;
+  const u = pick(e);
+  if (u) { if (S.open === u) closeSheet(); else openSheet(u); }
+  else if (S.open) closeSheet();
+});
+canvas.addEventListener("wheel", e => { e.preventDefault(); S.zoom = THREE.MathUtils.clamp(S.zoom + e.deltaY * .001, .55, 1.5); }, { passive: false });
+if (TOUCH) $("#introHow").textContent = "Tap a unit to slide it out and read its spec. Use the tabs at the bottom to switch racks.";
+
+/* ---------- camera ---------- */
+const look = new THREE.Vector3(0, 5, 0), want = new THREE.Vector3(), wantLook = new THREE.Vector3();
+function cameraGoal() {
+  const sm = small();
+  if (S.open) {
+    // look down at the lid of the pulled-out unit; leave room for the panel
+    const u = S.open, sx = sm ? 0 : 2.4;
+    wantLook.set(u.x + sx, u.y + (sm ? -2.2 : 0), FRONT + 3.2);
+    want.set(u.x + sx, u.y + (sm ? 9.5 : 7), FRONT + 9.5);
+    return;
+  }
+  const focusX = S.sel ? S.sel.x : 0;
+  // wide screens show about three racks and pan toward the selected one
+  const fitThree = 14 / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+  const dist = (sm ? 21 : Math.max(22, fitThree)) * S.zoom;
+  wantLook.set(sm ? focusX : focusX * .55, 5.2, 0);
+  want.set(wantLook.x + Math.sin(S.yaw) * Math.cos(S.pitch) * dist, wantLook.y + Math.sin(S.pitch) * dist, Math.cos(S.yaw) * Math.cos(S.pitch) * dist);
+}
+function fov() { camera.fov = small() ? 52 : 40; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+fov();
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight, false); fov(); });
+
+/* ---------- loop ---------- */
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 1 / 20), t = clock.elapsedTime;
+  for (const u of units) {
+    const goal = S.open === u ? 4.4 : S.sel === u ? .55 : S.hover === u ? .25 : 0;
+    u.pull += (goal - u.pull) * (1 - Math.pow(.0008, dt));
+    u.g.position.z = u.pull;
+    u.faceMat.emissiveIntensity += ((S.sel === u ? .08 : 0) - u.faceMat.emissiveIntensity) * .15;
+    if (!REDUCED) {
+      const act = u.leds[1];
+      if (t > act.next) { act.on = !act.on; act.next = t + (act.on ? .05 + Math.random() * .25 : .05 + Math.random() * (S.sel === u ? .15 : .9)); }
+      act.m.material.color.copy(act.base).multiplyScalar(act.on ? 1 : .25);
+    }
+  }
+  if (S.started) {
+    cameraGoal();
+    const k = 1 - Math.pow(.004, dt);
+    camera.position.lerp(want, k); look.lerp(wantLook, k);
+  } else if (!REDUCED) {
+    camera.position.set(Math.sin(t * .12) * 16, 7 + Math.sin(t * .2), 22 + Math.cos(t * .12) * 3);
+    look.set(0, 5, 0);
+  } else camera.position.set(0, 8, 26);
+  camera.lookAt(look);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+frame();
+
+/* ---------- start ---------- */
+function start() {
+  if (S.started) return;
+  $("#intro").classList.add("gone");
+  S.started = true;
+  select(units[0]);
+  const u = unitById[decodeURIComponent(location.hash.slice(1))];
+  if (u) openSheet(u);
+  document.activeElement?.blur();
+}
+$("#loading").textContent = "";
+$("#startBtn").disabled = false;
+$("#startBtn").onclick = start;
+$("#startBtn").focus();
+if (unitById[decodeURIComponent(location.hash.slice(1))]) start(); // shared links skip the intro
+window.__rack = { units, S, openSheet, closeSheet, select, camera };
+</script>
+</body>
+</html>
