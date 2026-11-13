@@ -17,6 +17,7 @@ const PROJECTS = [
     flow: ["Auth", "Allow-list", "Budget", "Rate limit", "PII redact", "Cache", "Router + breakers", "Ledger"],
     metrics: [["38", "tests, < 1 s"], ["4", "provider adapters"], ["2", "cache tiers"]],
     demo: "p-relay",
+    repo: GH + "relay",
   },
   {
     id: "ledgerly", title: "Ledgerly — Double-Entry Payments API", featured: true,
